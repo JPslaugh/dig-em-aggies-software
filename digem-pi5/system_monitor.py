@@ -1,4 +1,36 @@
 #!/usr/bin/env python3
+#
+# System Monitor for digem-pi5 (Raspberry Pi 5)
+#
+# Hardware:
+#   - Geekworm X1202 UPS HAT (4x 18650 lithium cells wired in parallel)
+#   - MAX17040G+ fuel gauge IC on I2C bus 1, address 0x36
+#   - Cells are parallel so there is only one voltage reading for the whole pack
+#   - No current/amperage sensor on the X1202 — only voltage and state of charge
+#   - Pi 5 ethernet interface may be "eth0" or "end0" depending on OS version
+#
+# Data available from hardware:
+#   - CPU temperature: via `vcgencmd measure_temp` (Pi-specific command)
+#   - Battery cell voltage: MAX17040 register 0x02 (VCELL), returns float in volts
+#   - Battery state of charge: MAX17040 register 0x04 (SOC), returns float 0-100%
+#   - Power source detection: voltage > 4.15V means outlet power (charging),
+#     below means running on battery. This is a heuristic, not a dedicated flag.
+#   - Time remaining estimate: rough linear estimate assuming ~2.5h at full charge
+#     under typical Pi 5 load. NOT accurate — no current sensing available.
+#
+# I2C notes:
+#   - The X1202 connects to GPIO pins 3 (SDA) and 5 (SCL) via pogo pins on the
+#     underside of the HAT. These pins must be clean for reliable contact.
+#   - MAX17040 uses big-endian byte order, smbus2 reads little-endian,
+#     so all register reads need byte-swapping.
+#   - If I2C fails (bus or device not found), the app gracefully shows "No UPS"
+#     and retries on each update cycle.
+#
+# Dependencies: python3-pyqt5, python3-smbus2
+# Run on Pi: WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000
+#            QT_QPA_PLATFORM=wayland python3 system_monitor.py
+#
+
 import sys
 import os
 import struct
@@ -34,6 +66,11 @@ class InfoCard(QFrame):
 class SystemMonitor(QWidget):
     PASSWORD = "digem2026"
 
+    # MAX17040 I2C address and register map
+    FUEL_GAUGE_ADDR = 0x36
+    REG_VCELL = 0x02  # Battery voltage register (big-endian, 12-bit, units of 1.25mV)
+    REG_SOC = 0x04    # State of charge register (big-endian, upper byte = whole %, lower = fraction)
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Dig 'Em Aggies - System Monitor")
@@ -41,7 +78,7 @@ class SystemMonitor(QWidget):
         self.resize(520, 520)
 
         self.bus = None
-        self.addr = 0x36
+        self.addr = self.FUEL_GAUGE_ADDR
         self.prev_capacity = None
         self.try_connect_i2c()
 
@@ -49,7 +86,6 @@ class SystemMonitor(QWidget):
         main_layout.setContentsMargins(16, 12, 16, 12)
         main_layout.setSpacing(10)
 
-        # ── Title ──
         self.title = QLabel("DIG 'EM AGGIES")
         self.title.setAlignment(Qt.AlignCenter)
         self.title.setFont(QFont("Sans", 22, QFont.Bold))
@@ -64,7 +100,6 @@ class SystemMonitor(QWidget):
         main_layout.addWidget(subtitle)
         main_layout.addWidget(Separator())
 
-        # ── Network Info Card ──
         net_card = InfoCard()
         net_grid = QGridLayout()
         net_grid.setSpacing(4)
@@ -96,7 +131,6 @@ class SystemMonitor(QWidget):
         net_card.setLayout(net_grid)
         main_layout.addWidget(net_card)
 
-        # ── CPU Temperature ──
         cpu_card = InfoCard()
         cpu_layout = QHBoxLayout()
 
@@ -115,7 +149,6 @@ class SystemMonitor(QWidget):
         cpu_card.setLayout(cpu_layout)
         main_layout.addWidget(cpu_card)
 
-        # ── Power & Battery Card ──
         bat_card = InfoCard()
         bat_grid = QGridLayout()
         bat_grid.setSpacing(4)
@@ -145,7 +178,6 @@ class SystemMonitor(QWidget):
             bat_grid.addWidget(lbl, row, 0)
             bat_grid.addWidget(val_widget, row, 1)
 
-        # Big charge percentage
         self.big_charge = QLabel("--%")
         self.big_charge.setFont(QFont("Sans", 48, QFont.Bold))
         self.big_charge.setStyleSheet("color: #00ff00; border: none;")
@@ -157,6 +189,7 @@ class SystemMonitor(QWidget):
 
         self.setLayout(main_layout)
 
+        # Poll every 2 seconds — safe rate for MAX17040 (updates internally every ~500ms)
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_all)
         self.timer.start(2000)
@@ -164,12 +197,15 @@ class SystemMonitor(QWidget):
         self.update_ip()
 
     def try_connect_i2c(self):
+        """Connect to I2C bus 1. The X1202 HAT uses bus 1 on the Pi 5 GPIO header."""
         try:
             self.bus = smbus2.SMBus(1)
         except:
             self.bus = None
 
     def update_ip(self):
+        """Get the IPv4 address of the ethernet interface.
+        Pi 5 may name it 'eth0' or 'end0' depending on OS/firmware version."""
         try:
             result = subprocess.run(
                 ["ip", "-4", "-o", "addr", "show", "dev", "eth0"],
@@ -181,7 +217,6 @@ class SystemMonitor(QWidget):
                 return
         except:
             pass
-        # fallback: try end0 (Pi 5 naming)
         try:
             result = subprocess.run(
                 ["ip", "-4", "-o", "addr", "show", "dev", "end0"],
@@ -196,6 +231,8 @@ class SystemMonitor(QWidget):
         self.ip_val.setText("No Ethernet")
 
     def get_temp(self):
+        """Read CPU temperature using vcgencmd (Raspberry Pi specific).
+        Returns temperature as a string like '52.1' (degrees Celsius), or None."""
         try:
             result = subprocess.run(["vcgencmd", "measure_temp"],
                                     capture_output=True, text=True)
@@ -204,23 +241,31 @@ class SystemMonitor(QWidget):
             return None
 
     def get_voltage(self):
+        """Read battery pack voltage from MAX17040 VCELL register (0x02).
+        The raw value is a 12-bit number in units of 1.25mV, packed big-endian.
+        smbus2 reads as little-endian so we byte-swap before converting.
+        Returns voltage as float (e.g. 4.01), or None if I2C read fails."""
         try:
-            read = self.bus.read_word_data(self.addr, 2)
+            read = self.bus.read_word_data(self.addr, self.REG_VCELL)
             swapped = struct.unpack("<H", struct.pack(">H", read))[0]
             return swapped * 1.25 / 1000 / 16
         except:
             return None
 
     def get_capacity(self):
+        """Read battery state of charge from MAX17040 SOC register (0x04).
+        Upper byte is whole percentage, lower byte is 1/256th fraction.
+        Returns SOC as float 0-100 (e.g. 83.5), or None if I2C read fails.
+        Note: under load while charging, this typically maxes out around 84%
+        because the cell voltage can't reach true 4.2V while powering the Pi."""
         try:
-            read = self.bus.read_word_data(self.addr, 4)
+            read = self.bus.read_word_data(self.addr, self.REG_SOC)
             swapped = struct.unpack("<H", struct.pack(">H", read))[0]
             return swapped / 256
         except:
             return None
 
     def update_all(self):
-        # Temperature
         temp = self.get_temp()
         if temp:
             self.temp_label.setText(f"{temp}\u00b0C")
@@ -232,7 +277,6 @@ class SystemMonitor(QWidget):
             else:
                 self.temp_label.setStyleSheet("color: white; border: none;")
 
-        # Battery
         if self.bus is None:
             self.try_connect_i2c()
 
@@ -242,6 +286,9 @@ class SystemMonitor(QWidget):
         if voltage is not None:
             self.voltage_label.setText(f"{voltage:.2f}V")
 
+            # Voltage > 4.15V indicates outlet power is connected and cells are charging.
+            # Below 4.15V means running on battery only. This threshold is a heuristic —
+            # there is no dedicated "charging" pin or register on the MAX17040.
             if voltage > 4.15:
                 self.power_label.setText("\u26a1 Outlet (Charging)")
                 self.power_label.setStyleSheet("color: #00ff00; border: none;")
@@ -268,6 +315,10 @@ class SystemMonitor(QWidget):
             self.capacity_label.setStyleSheet(f"color: {color}; border: none;")
             self.big_charge.setStyleSheet(f"color: {color}; border: none;")
 
+            # Time remaining is a rough linear estimate: assumes ~2.5 hours at 100%
+            # under typical Pi 5 load (~3-5W). This is NOT accurate without a current
+            # sensor. For better estimates, add an INA219 current sensor or track
+            # SOC drop rate over time.
             if self.prev_capacity is not None and voltage is not None and voltage < 4.15:
                 hours_left = (capacity / 100) * 2.5
                 if hours_left > 0:
