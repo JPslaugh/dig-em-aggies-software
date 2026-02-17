@@ -256,7 +256,7 @@ class SystemMonitor(QWidget):
         """Read battery state of charge from MAX17040 SOC register (0x04).
         Upper byte is whole percentage, lower byte is 1/256th fraction.
         Returns SOC as float 0-100 (e.g. 83.5), or None if I2C read fails.
-        Note: under load while charging, this typically maxes out around 84%
+        Note: under load while charging, this typically maxes out around 95%
         because the cell voltage can't reach true 4.2V while powering the Pi."""
         try:
             read = self.bus.read_word_data(self.addr, self.REG_SOC)
