@@ -23,7 +23,7 @@ void setup(void) {
   }
 
   Wire.begin();
-  Wire.setClock(400000);  // 400 kHz, same as Python
+  Wire.setClock(100000);  // 100 kHz, more reliable on long/breadboard wires
 
   if (!bno08x.begin_I2C()) {
     Serial.println("Failed to find BNO08x chip");
@@ -33,7 +33,7 @@ void setup(void) {
   }
   Serial.println("BNO08x Found!");
 
-  if (!bno08x.enableReport(SH2_ROTATION_VECTOR, REPORT_INTERVAL_US)) {
+  if (!bno08x.enableReport(SH2_GAME_ROTATION_VECTOR, REPORT_INTERVAL_US)) {
     Serial.println("Could not enable rotation vector"); //runs when the sensor is not found
     while (1) {
       delay(10);
@@ -47,7 +47,7 @@ void setup(void) {
 
 void loop(void) {
   if (bno08x.wasReset()) {
-    bno08x.enableReport(SH2_ROTATION_VECTOR, REPORT_INTERVAL_US); 
+    bno08x.enableReport(SH2_GAME_ROTATION_VECTOR, REPORT_INTERVAL_US); 
   }
 
   if (!bno08x.getSensorEvent(&sensorValue)) {
@@ -55,14 +55,14 @@ void loop(void) {
     return;
   }
 
-  if (sensorValue.sensorId != SH2_ROTATION_VECTOR) {
+  if (sensorValue.sensorId != SH2_GAME_ROTATION_VECTOR) {
     return;
   }
 
-  float i    = sensorValue.un.rotationVector.i;
-  float j    = sensorValue.un.rotationVector.j;
-  float k    = sensorValue.un.rotationVector.k;
-  float real = sensorValue.un.rotationVector.real;
+  float i    = sensorValue.un.gameRotationVector.i;
+  float j    = sensorValue.un.gameRotationVector.j;
+  float k    = sensorValue.un.gameRotationVector.k;
+  float real = sensorValue.un.gameRotationVector.real;
   float roll  = QUAT_RAD_TO_DEG * atan2(2.0f * (real * i + j * k), 1.0f - 2.0f * (i * i + j * j));
   float pitch = QUAT_RAD_TO_DEG * asin(fmaxf(-1.0f, fminf(1.0f, 2.0f * (real * j - k * i))));
   float yaw   = QUAT_RAD_TO_DEG * atan2(2.0f * (real * k + i * j), 1.0f - 2.0f * (j * j + k * k));
