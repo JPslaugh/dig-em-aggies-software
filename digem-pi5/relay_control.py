@@ -13,11 +13,14 @@ Run: python3 relay_control.py
 
 import sys
 import threading
+import logging
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
                               QLabel, QFrame, QPushButton, QTabWidget, QGridLayout)
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtGui import QFont
 from pymodbus.client import ModbusTcpClient
+
+logging.getLogger("pymodbus").setLevel(logging.CRITICAL)
 
 RELAY_BOARDS = [
     {"name": "Relay_1", "ip": "192.168.100.10", "port": 502},
