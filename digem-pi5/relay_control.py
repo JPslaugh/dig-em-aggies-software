@@ -23,24 +23,8 @@ from pymodbus.client import ModbusTcpClient
 logging.getLogger("pymodbus").setLevel(logging.CRITICAL)
 
 RELAY_BOARDS = [
-    {
-        "name": "Relay_1",
-        "ip": "192.168.100.10",
-        "port": 502,
-        "labels": {},  # No labels yet — harmful devices TBD
-    },
-    {
-        "name": "Relay_2",
-        "ip": "192.168.100.11",
-        "port": 502,
-        "labels": {
-            0: "Green Light",
-            1: "Yellow Light",
-            2: "Red Light",
-            3: "Alarm",
-            4: "Ground Power",
-        },
-    },
+    {"name": "Relay_1", "ip": "192.168.100.10", "port": 502},
+    {"name": "Relay_2", "ip": "192.168.100.11", "port": 502},
 ]
 
 NUM_CHANNELS = 16
@@ -131,12 +115,11 @@ class Separator(QFrame):
 class RelayButton(QPushButton):
     """Toggle button for a single relay channel."""
 
-    def __init__(self, channel, label=None):
+    def __init__(self, channel):
         super().__init__()
         self.channel = channel
-        self.label = label
         self.is_on = False
-        self.setFont(QFont("Sans", 9, QFont.Bold))
+        self.setFont(QFont("Sans", 10, QFont.Bold))
         self.setFixedSize(88, 64)
         self._refresh()
 
@@ -146,8 +129,7 @@ class RelayButton(QPushButton):
             self._refresh()
 
     def _refresh(self):
-        top = self.label if self.label else f"CH {self.channel + 1:02d}"
-        self.setText(f"{top}\n{'ON' if self.is_on else 'OFF'}")
+        self.setText(f"CH {self.channel + 1:02d}\n{'ON' if self.is_on else 'OFF'}")
         if self.is_on:
             self.setStyleSheet("""
                 QPushButton {
@@ -175,11 +157,10 @@ class RelayButton(QPushButton):
 class BoardTab(QWidget):
     """Tab showing all 16 relay channels for one board."""
 
-    def __init__(self, board: RelayBoard, name: str, labels: dict):
+    def __init__(self, board: RelayBoard, name: str):
         super().__init__()
         self.board = board
         self.name = name
-        self.labels = labels
         self.buttons: list[RelayButton] = []
         self._build_ui()
 
@@ -207,7 +188,7 @@ class BoardTab(QWidget):
         grid = QGridLayout()
         grid.setSpacing(8)
         for i in range(NUM_CHANNELS):
-            btn = RelayButton(i, self.labels.get(i))
+            btn = RelayButton(i)
             btn.clicked.connect(lambda _, b=btn: self._toggle(b))
             self.buttons.append(btn)
             grid.addWidget(btn, i // 4, i % 4)
@@ -319,7 +300,7 @@ class RelayControlPanel(QWidget):
         for cfg in RELAY_BOARDS:
             board = RelayBoard(cfg["ip"], cfg["port"])
             board.connect()
-            tab = BoardTab(board, cfg["name"], cfg.get("labels", {}))
+            tab = BoardTab(board, cfg["name"])
             self.board_tabs.append(tab)
             self.tabs.addTab(tab, cfg["name"])
 
