@@ -1,6 +1,5 @@
 """
 Log Tab
--------
 Timestamped event log for all system events:
   ALARM    — sensor threshold alarm breaches (red)
   WARN     — sensor threshold warnings (amber)
@@ -22,7 +21,6 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFont, QColor
 
-# ── Style constants ───────────────────────────────────────────────────────────
 SECTION_BG  = "#1a0000"
 CARD_BG     = "#500000"
 CARD_BORDER = "#7a1515"
@@ -51,7 +49,6 @@ CAT_BG = {
 MAX_ENTRIES = 500   # drop oldest beyond this
 
 
-# ── Single log entry widget ───────────────────────────────────────────────────
 class LogEntry(QWidget):
 
     def __init__(self, timestamp: str, category: str, message: str, parent=None):
@@ -92,7 +89,6 @@ class LogEntry(QWidget):
         row.addWidget(msg_lbl, stretch=1)
 
 
-# ── Filter toggle button ──────────────────────────────────────────────────────
 class FilterBtn(QPushButton):
 
     def __init__(self, category: str, parent=None):
@@ -130,7 +126,6 @@ class FilterBtn(QPushButton):
             """)
 
 
-# ── Log Tab ───────────────────────────────────────────────────────────────────
 class LogTab(QWidget):
 
     def __init__(self, parent=None):
@@ -144,7 +139,6 @@ class LogTab(QWidget):
         root.setContentsMargins(8, 8, 8, 8)
         root.setSpacing(6)
 
-        # ── Toolbar ───────────────────────────────────────────────────────────
         toolbar = QHBoxLayout()
         toolbar.setSpacing(6)
 
@@ -233,7 +227,6 @@ class LogTab(QWidget):
         sep.setStyleSheet(f"color:{CARD_BORDER};")
         root.addWidget(sep)
 
-        # ── Scroll area with log entries ──────────────────────────────────────
         self._scroll = QScrollArea()
         self._scroll.setWidgetResizable(True)
         self._scroll.setStyleSheet(f"""
@@ -263,7 +256,6 @@ class LogTab(QWidget):
         # Seed with startup entry
         self.log("INFO", "Operator UI started")
 
-    # ── Public API ────────────────────────────────────────────────────────────
 
     def log(self, category: str, message: str):
         """Add a new log entry. category = ALARM|WARN|STATE|COMMS|CONTROL|INFO"""
@@ -330,7 +322,6 @@ class LogTab(QWidget):
     def log_mining(self, active: bool):
         self.log("INFO", f"Mining {'STARTED' if active else 'STOPPED'} — MQTT telemetry {'publishing' if active else 'paused'}")
 
-    # ── Internal ──────────────────────────────────────────────────────────────
 
     def _apply_filters(self):
         for entry in self._entries:

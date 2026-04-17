@@ -1,6 +1,5 @@
 """
 MQTT Publisher
---------------
 Publishes navigation telemetry to TBC at 0.1 Hz when mining flag is active.
 
 JSON format per NaBC 2026 Full Rules Section 9d:
@@ -91,7 +90,6 @@ class MQTTPublisher(QObject):
 
         self._connect()
 
-    # ── Public API ────────────────────────────────────────────────────────────
 
     def update_sensor(self, key: str, value: float):
         if key in self._sensors:
@@ -110,7 +108,6 @@ class MQTTPublisher(QObject):
         MQTT["port"]   = port
         self._connect()
 
-    # ── Internal ──────────────────────────────────────────────────────────────
 
     def _connect(self):
         if not MQTT_AVAILABLE:
