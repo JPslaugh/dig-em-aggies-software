@@ -8,7 +8,7 @@ import time
 
 from config import IO_THRESHOLDS, STALE_TIMEOUT, State
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+#Helpers
 
 def threshold_color(key, value):
     t = IO_THRESHOLDS.get(key)
@@ -55,7 +55,7 @@ STATE_LIGHTS = {
 }
 
 
-# ── Mini bar widget ───────────────────────────────────────────────────────────
+#Mini bar widget
 class MiniBar(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -78,7 +78,7 @@ class MiniBar(QFrame):
         p.end()
 
 
-# ── Single sensor value card ──────────────────────────────────────────────────
+# Single sensor value card
 class SensorCard(QFrame):
     def __init__(self, key, label, parent=None):
         super().__init__(parent)
@@ -168,7 +168,7 @@ class SensorCard(QFrame):
                 self.mark_stale()
 
 
-# ── Power rail card ───────────────────────────────────────────────────────────
+#Power rail card
 class PowerCard(QFrame):
     def __init__(self, label, v_key, a_key, parent=None):
         super().__init__(parent)
@@ -230,7 +230,7 @@ class PowerCard(QFrame):
         self.w_lbl.setStyleSheet(f"color: {LABEL_COLOR}; border: none;")
 
 
-# ── Signal light panel ────────────────────────────────────────────────────────
+#Signal light panel
 class SignalLightPanel(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -292,7 +292,7 @@ class SignalLightPanel(QFrame):
             self.set_light(key, on)
 
 
-# ── MQTT status card ──────────────────────────────────────────────────────────
+# MQTT status card
 class MQTTStatusCard(QFrame):
     mining_toggled = pyqtSignal(bool)  # FIX #5: mining flag toggle
 
@@ -397,7 +397,7 @@ class MQTTStatusCard(QFrame):
         return self._mining
 
 
-# ── Warnings panel ────────────────────────────────────────────────────────────
+#Warnings panel
 class WarningsPanel(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -495,7 +495,6 @@ class WarningsPanel(QFrame):
         return any(k.endswith("_alarm") for k in self._entries)
 
 
-# ── Section header label ──────────────────────────────────────────────────────
 def section_label(text):
     lbl = QLabel(text)
     lbl.setFont(QFont("Segoe UI", 13, QFont.Bold))
@@ -503,7 +502,6 @@ def section_label(text):
     return lbl
 
 
-# ── Dashboard tab ─────────────────────────────────────────────────────────────
 class DashboardTab(QWidget):
     warning_raised  = pyqtSignal(str, str, bool)
     warning_cleared = pyqtSignal(str)
@@ -524,7 +522,6 @@ class DashboardTab(QWidget):
         root.setContentsMargins(10, 10, 10, 10)
         root.setSpacing(8)
 
-        # ── Row 1: State + Warnings ───────────────────────────────────────────
         row1 = QHBoxLayout()
         row1.setSpacing(8)
 
@@ -609,7 +606,6 @@ class DashboardTab(QWidget):
         row1.addWidget(self.warnings, stretch=1)
         root.addLayout(row1, stretch=3)
 
-        # ── Row 2: Machine sensors (4 per row) ────────────────────────────────
         root.addWidget(section_label("Machine Sensors"))
 
         self.sensor_cards = {}
@@ -642,7 +638,6 @@ class DashboardTab(QWidget):
             sens_row_b.addWidget(card)
         root.addLayout(sens_row_b, stretch=2)
 
-        # ── Row 3: Power rails ─────────────────────────────────────────────────
         root.addWidget(section_label("Power Rails"))
 
         self.power_cards = {}
@@ -659,7 +654,6 @@ class DashboardTab(QWidget):
             pwr_row.addWidget(card)
         root.addLayout(pwr_row, stretch=2)
 
-        # ── Row 4: Signal tower + MQTT ─────────────────────────────────────────
         bottom_row = QHBoxLayout()
         bottom_row.setSpacing(8)
         self.signal_panel = SignalLightPanel()
@@ -672,7 +666,6 @@ class DashboardTab(QWidget):
         # Apply initial state to signal lights
         self.signal_panel.apply_state(State.ESTOPPED)
 
-    # ── Public update API ─────────────────────────────────────────────────────
 
     def update_sensor(self, key: str, value: float):
         if key in self.sensor_cards:

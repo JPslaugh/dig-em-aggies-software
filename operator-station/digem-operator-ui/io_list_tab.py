@@ -1,6 +1,5 @@
 """
 IO List Tab  (NaBC 2026 Rules Section 8d)
------------------------------------------
 Required by TBC inspectors at Mining Readiness Review.
 Shows every sensor input and control output with:
   - Low Alarm / Low Warn / Actual / High Warn / High Alarm / Units
@@ -22,7 +21,6 @@ from PyQt5.QtGui import QFont, QColor
 
 from config import IO_THRESHOLDS
 
-# ── Style ─────────────────────────────────────────────────────────────────────
 SECTION_BG  = "#1a0000"
 CARD_BG     = "#500000"
 CARD_BORDER = "#7a1515"
@@ -40,7 +38,6 @@ ALARM_TEXT  = QColor("#ff4444")
 NA_TEXT     = QColor("#666666")
 
 
-# ── Sensor IO entries ─────────────────────────────────────────────────────────
 # (display_name, threshold_key, device, interface)
 SENSOR_IO = [
     ("Cutterhead RPM",       "RPM",        "Teensy 1", "Optocoupler  Pin 2"),
@@ -96,7 +93,6 @@ class IOListTab(QWidget):
         root.setContentsMargins(8, 8, 8, 8)
         root.setSpacing(8)
 
-        # ── Toolbar ───────────────────────────────────────────────────────────
         toolbar = QHBoxLayout()
         title = QLabel("IO List  —  NaBC 2026 Section 8d")
         title.setFont(QFont("Segoe UI", 12, QFont.Bold))
@@ -126,7 +122,6 @@ class IOListTab(QWidget):
         sep.setStyleSheet(f"color:{CARD_BORDER};")
         root.addWidget(sep)
 
-        # ── Sensor inputs table ───────────────────────────────────────────────
         sens_lbl = QLabel("Sensor Inputs")
         sens_lbl.setFont(QFont("Segoe UI", 10, QFont.Bold))
         sens_lbl.setStyleSheet(f"color:{DIM_COLOR};")
@@ -136,7 +131,6 @@ class IOListTab(QWidget):
         self._populate_sensors()
         root.addWidget(self._sens_table, stretch=3)
 
-        # ── Control outputs table ─────────────────────────────────────────────
         ctrl_lbl = QLabel("Control Outputs  (Relay Channels)")
         ctrl_lbl.setFont(QFont("Segoe UI", 10, QFont.Bold))
         ctrl_lbl.setStyleSheet(f"color:{DIM_COLOR};")
@@ -146,7 +140,6 @@ class IOListTab(QWidget):
         self._populate_relays()
         root.addWidget(self._relay_table, stretch=2)
 
-    # ── Public API ────────────────────────────────────────────────────────────
 
     def update_sensor(self, key: str, value: float):
         self._sensor_actuals[key] = value
@@ -156,7 +149,6 @@ class IOListTab(QWidget):
         self._relay_states[(relay, ch)] = state
         self._refresh_relay_row(relay, ch, state)
 
-    # ── Table builders ────────────────────────────────────────────────────────
 
     def _make_table(self, columns):
         t = QTableWidget()
@@ -245,7 +237,6 @@ class IOListTab(QWidget):
                     item.setBackground(NA_COLOR)
                     item.setForeground(NA_TEXT)
 
-    # ── Live update helpers ───────────────────────────────────────────────────
 
     def _refresh_sensor_row(self, key: str, value: float):
         row = self._sens_row_map.get(key)
@@ -302,7 +293,6 @@ class IOListTab(QWidget):
                 item.setBackground(bg)
                 item.setForeground(fg)
 
-    # ── CSV export ────────────────────────────────────────────────────────────
 
     def _export_csv(self):
         path, _ = QFileDialog.getSaveFileName(

@@ -15,7 +15,6 @@ from PyQt5.QtWidgets import QApplication
 from main import MainWindow
 from config import State
 
-# ── Fake data config ──────────────────────────────────────────────────────────
 
 FAKE_LOG = [
     ("COMMS",   "Relay 1 (192.168.100.10): connected"),

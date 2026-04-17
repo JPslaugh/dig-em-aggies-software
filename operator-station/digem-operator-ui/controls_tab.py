@@ -1,6 +1,5 @@
 """
 Controls Tab  (password-protected — enforced by MainWindow)
--------------------------------------------------------------
 Manual relay channel control for Relay 1 and Relay 2.
 Modbus write stubs are marked TODO — wired in when comms layer lands.
 
@@ -33,7 +32,7 @@ from PyQt5.QtGui import QFont
 
 from config import State
 
-# ── Style constants ───────────────────────────────────────────────────────────
+#Style constants
 CARD_BG     = "#500000"
 CARD_BORDER = "#7a1515"
 SECTION_BG  = "#1a0000"
@@ -80,7 +79,7 @@ RELAY2_CHANNELS = {
 }
 
 
-# ── Channel button ────────────────────────────────────────────────────────────
+# Channel button
 class ChannelButton(QWidget):
     """Toggle button for a single relay channel."""
 
@@ -219,7 +218,7 @@ class ChannelButton(QWidget):
             self._btn.setText("OFF")
 
 
-# ── Relay panel (one per relay board) ────────────────────────────────────────
+# Relay panel (one per relay board) 
 class RelayPanel(QWidget):
 
     channel_toggled = pyqtSignal(int, int, bool)   # (relay, ch, state)
@@ -285,7 +284,7 @@ class RelayPanel(QWidget):
             w.set_locked(locked)
 
 
-# ── Controls Tab ──────────────────────────────────────────────────────────────
+#Controls Tab
 class ControlsTab(QWidget):
 
     channel_toggled = pyqtSignal(int, int, bool)   # (relay, ch, state)
@@ -299,7 +298,7 @@ class ControlsTab(QWidget):
         root.setContentsMargins(8, 8, 8, 8)
         root.setSpacing(8)
 
-        # ── Warning banner ────────────────────────────────────────────────────
+        #Warning banner
         self._banner = QLabel(
             "⚠  MANUAL CONTROL MODE  —  Direct relay channel override active.\n"
             "Relay 1 channels are physically cut by the PNOZ S5 while E-stopped. "
@@ -319,9 +318,9 @@ class ControlsTab(QWidget):
         """)
         root.addWidget(self._banner)
 
-        # ── E-stop notice (shown when relay 1 is locked) ──────────────────────
+        #E-stop notice (shown when relay 1 is locked)
         self._estop_notice = QLabel(
-            "🔒  System is E-STOPPED — Relay 1 channels are locked (hardware power cut). "
+            "System is E-STOPPED — Relay 1 channels are locked (hardware power cut). "
             "Reset the physical E-stop and press RESET before operating Relay 1."
         )
         self._estop_notice.setFont(QFont("Segoe UI", 10))
@@ -338,7 +337,7 @@ class ControlsTab(QWidget):
         """)
         root.addWidget(self._estop_notice)
 
-        # ── Relay panels ──────────────────────────────────────────────────────
+        #Relay panels
         panels_row = QHBoxLayout()
         panels_row.setSpacing(10)
 
@@ -361,7 +360,7 @@ class ControlsTab(QWidget):
         # Apply initial E-stopped state
         self._apply_estop(True)
 
-    # ── Public API ────────────────────────────────────────────────────────────
+    #Public API
 
     def set_system_state(self, state: str):
         estopped = (state == State.ESTOPPED)
@@ -381,7 +380,7 @@ class ControlsTab(QWidget):
         self.relay1_panel.set_all_off()
         self.relay2_panel.set_all_off()
 
-    # ── Internal ──────────────────────────────────────────────────────────────
+    #Internal
 
     def _apply_estop(self, estopped: bool):
         self._estop_notice.setVisible(estopped)

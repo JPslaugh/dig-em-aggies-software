@@ -1,6 +1,5 @@
 """
 Machine State Tab
------------------
 Left   : TBM attitude visualizer (roll/pitch artificial horizon + yaw compass)
          + depth gauge
 Middle : Scrolling time-series graphs — Depth, RPM, Flow
@@ -28,7 +27,6 @@ import matplotlib.ticker as ticker
 
 from config import IO_THRESHOLDS, State
 
-# ── Shared style constants ────────────────────────────────────────────────────
 CARD_BG     = "#500000"
 CARD_BORDER = "#7a1515"
 SECTION_BG  = "#1a0000"
@@ -59,7 +57,6 @@ def section_label(text):
     return lbl
 
 
-# ── Attitude Indicator (Artificial Horizon + Roll arc) ───────────────────────
 class AttitudeWidget(QWidget):
     """Draws an artificial horizon for roll/pitch."""
 
@@ -174,7 +171,6 @@ class AttitudeWidget(QWidget):
         p.end()
 
 
-# ── Compass / Yaw indicator ───────────────────────────────────────────────────
 class CompassWidget(QWidget):
     """Simple compass rose showing yaw/heading."""
 
@@ -255,7 +251,6 @@ class CompassWidget(QWidget):
         p.end()
 
 
-# ── Depth gauge (vertical bar) ────────────────────────────────────────────────
 class DepthGauge(QWidget):
     """Vertical bar showing current depth vs target (8 m)."""
 
@@ -320,7 +315,6 @@ class DepthGauge(QWidget):
         p.end()
 
 
-# ── Derived metrics card ─────────────────────────────────────────────────────
 class DerivedMetricsCard(QWidget):
     """Shows cutterhead acceleration, downward velocity, and total fluid volume."""
 
@@ -384,7 +378,6 @@ class DerivedMetricsCard(QWidget):
         self._vol_lbl.setStyleSheet(f"color:{TEXT_COLOR}; background:transparent; border:none;")
 
 
-# ── Scrolling time-series graph (matplotlib) ──────────────────────────────────
 class ScrollingGraph(FigureCanvas):
     """Single-metric scrolling graph with warn/alarm bands."""
 
@@ -457,7 +450,6 @@ class ScrollingGraph(FigureCanvas):
         self.draw_idle()
 
 
-# ── Numeric readout card ──────────────────────────────────────────────────────
 class ReadoutCard(QWidget):
     """Small card: label + big value + unit + status colour."""
 
@@ -490,7 +482,6 @@ class ReadoutCard(QWidget):
         self._val.setStyleSheet(f"color:{color}; background:transparent; border:none;")
 
 
-# ── Machine State Tab ─────────────────────────────────────────────────────────
 class MachineStateTab(QWidget):
 
     def __init__(self, parent=None):
@@ -501,7 +492,6 @@ class MachineStateTab(QWidget):
         root.setContentsMargins(8, 8, 8, 8)
         root.setSpacing(10)
 
-        # ── Left column: Attitude + Depth ──────────────────────────────────────
         left = QVBoxLayout()
         left.setSpacing(8)
 
@@ -544,7 +534,6 @@ class MachineStateTab(QWidget):
 
         root.addLayout(left, stretch=3)
 
-        # ── Middle column: Scrolling graphs ────────────────────────────────────
         mid = QVBoxLayout()
         mid.setSpacing(8)
         mid.addWidget(section_label("Sensor History (last 60 s)"))
@@ -568,7 +557,6 @@ class MachineStateTab(QWidget):
 
         root.addLayout(mid, stretch=4)
 
-        # ── Right column: Numeric readouts ─────────────────────────────────────
         right = QVBoxLayout()
         right.setSpacing(8)
         right.addWidget(section_label("Live Readings"))
@@ -606,7 +594,6 @@ class MachineStateTab(QWidget):
         self._timer.timeout.connect(self._tick)
         self._timer.start(500)
 
-    # ── Public API ────────────────────────────────────────────────────────────
 
     def update_sensor(self, key: str, value: float):
         """Called by MainWindow whenever a Teensy sensor value arrives."""
@@ -668,7 +655,6 @@ class MachineStateTab(QWidget):
     def set_system_state(self, state: str):
         pass  # reserved for future state-dependent UI changes
 
-    # ── Internal helpers ──────────────────────────────────────────────────────
 
     def _current_roll(self) -> float:
         txt = self._roll_lbl.text().replace("Roll: ", "").replace("°", "")
