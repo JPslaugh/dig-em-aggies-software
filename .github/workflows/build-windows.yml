@@ -17,12 +17,12 @@ jobs:
             pyinstaller_args: --onefile --windowed --name DiGEM-Operator-UI --icon assets/logo.png main.py
           - os: ubuntu-latest
             name: Linux
-            artifact: DiGEM-Operator-UI
-            pyinstaller_args: --onefile --name DiGEM-Operator-UI main.py
+            artifact: DiGEM-Operator-UI-Linux
+            pyinstaller_args: --onefile --name DiGEM-Operator-UI-Linux main.py
           - os: macos-latest
             name: macOS
-            artifact: DiGEM-Operator-UI
-            pyinstaller_args: --onefile --windowed --name DiGEM-Operator-UI --icon assets/logo.png main.py
+            artifact: DiGEM-Operator-UI-macOS
+            pyinstaller_args: --onefile --windowed --name DiGEM-Operator-UI-macOS --icon assets/logo.png main.py
 
     runs-on: ${{ matrix.os }}
     permissions:
