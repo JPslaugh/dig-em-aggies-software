@@ -21,7 +21,6 @@ from log_tab import LogTab
 from mqtt_publisher import MQTTPublisher
 from io_list_tab import IOListTab
 
-# ── Dark maroon theme palette ─────────────────────────────────────────────────
 DARK_STYLE = """
 QMainWindow, QWidget {
     background-color: #1a0000;
@@ -86,7 +85,6 @@ QFrame[frameShape="4"], QFrame[frameShape="5"] {
 }
 """
 
-# ── Password dialog ───────────────────────────────────────────────────────────
 class PasswordDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -120,7 +118,6 @@ class PasswordDialog(QDialog):
         return self.input.text()
 
 
-# ── Connection status indicator ───────────────────────────────────────────────
 class ConnectionDot(QWidget):
     def __init__(self, label, parent=None):
         super().__init__(parent)
@@ -148,7 +145,6 @@ class ConnectionDot(QWidget):
             self.dot.setStyleSheet("color: #cc2222; background: transparent;")
 
 
-# ── System state badge ────────────────────────────────────────────────────────
 class StateBadge(QLabel):
     STATE_COLORS = {
         State.ESTOPPED: "#cc2222",
@@ -179,7 +175,6 @@ class StateBadge(QLabel):
         """)
 
 
-# ── Soft stop button (cuts all relay channels via Modbus, does NOT cut power) ──
 class SoftStopButton(QPushButton):
     def __init__(self, parent=None):
         super().__init__("ALL OUTPUTS OFF", parent)
@@ -206,7 +201,6 @@ class SoftStopButton(QPushButton):
         """)
 
 
-# ── Top bar ───────────────────────────────────────────────────────────────────
 class TopBar(QWidget):
     estop_triggered  = pyqtSignal()
     reset_triggered  = pyqtSignal()
@@ -314,7 +308,6 @@ class TopBar(QWidget):
         self.state_badge.set_state(state)
 
 
-# ── Placeholder tab ───────────────────────────────────────────────────────────
 class PlaceholderTab(QWidget):
     def __init__(self, name, parent=None):
         super().__init__(parent)
@@ -327,7 +320,6 @@ class PlaceholderTab(QWidget):
         layout.addWidget(lbl)
 
 
-# ── Main window ───────────────────────────────────────────────────────────────
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -496,7 +488,6 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Software reset — system IDLE. Physical E-stop confirmed clear.")
 
 
-# ── Entry point ───────────────────────────────────────────────────────────────
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("DiGEM TBM Operator Station")

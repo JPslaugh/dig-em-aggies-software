@@ -1,6 +1,5 @@
 """
 Power Tab
----------
 4 DC rail cards (Relay 1, Relay 2, 24V Supply, 12V Supply):
   - Live V / A / W with threshold colouring
   - Scrolling 60s history graph per rail
@@ -26,7 +25,6 @@ from matplotlib.figure import Figure
 
 from config import IO_THRESHOLDS
 
-# ── Style constants ───────────────────────────────────────────────────────────
 CARD_BG     = "#500000"
 CARD_BORDER = "#7a1515"
 SECTION_BG  = "#1a0000"
@@ -86,7 +84,6 @@ def _threshold_color(v_key, a_key, voltage, current):
     return [OK_COLOR, WARN_COLOR, ALARM_COLOR][level]
 
 
-# ── Scrolling watt graph ──────────────────────────────────────────────────────
 class WattGraph(FigureCanvas):
 
     def __init__(self, color: str, max_w: float, parent=None):
@@ -138,7 +135,6 @@ class WattGraph(FigureCanvas):
             self._redraw()
 
 
-# ── Per-rail card ─────────────────────────────────────────────────────────────
 class RailCard(QWidget):
 
     def __init__(self, rail_key: str, label: str,
@@ -253,7 +249,6 @@ class RailCard(QWidget):
         self._graph.tick()
 
 
-# ── 120VAC pump indicator ─────────────────────────────────────────────────────
 class PumpIndicator(QWidget):
     """Shows whether Relay_1 CH7/8 (120VAC liquid injection pump) is energised."""
 
@@ -303,7 +298,6 @@ class PumpIndicator(QWidget):
             self._status.setStyleSheet(f"color:{DIM_COLOR}; background:transparent; border:none;")
 
 
-# ── Power Tab ─────────────────────────────────────────────────────────────────
 class PowerTab(QWidget):
 
     def __init__(self, parent=None):
@@ -342,7 +336,6 @@ class PowerTab(QWidget):
         self._timer.timeout.connect(self._tick)
         self._timer.start(500)
 
-    # ── Public API ────────────────────────────────────────────────────────────
 
     def update_power(self, key: str, voltage: float, current: float):
         """key = 'relay1' | 'relay2' | '24v' | '12v'"""
