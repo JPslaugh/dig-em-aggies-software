@@ -1,0 +1,13 @@
+/env
+/build
+/telemetry.json
+/rov_log.txt
+/ecu_reports/
+__pycache__/
+*.pyc
+.DS_Store
+.vscode/
+*.log
+*.tmp
+*.swp
+/extras
