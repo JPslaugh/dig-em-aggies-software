@@ -25,9 +25,9 @@ class State:
 
 # IO thresholds for each sensor (Low Alarm, Low Warn, High Warn, High Alarm, units)
 IO_THRESHOLDS = {
-    "RPM":        {"low_alarm": 0,    "low_warn": 0,    "high_warn": 17,   "high_alarm": 20,   "unit": "RPM"},
-    "Flow":       {"low_alarm": 0,    "low_warn": 0,    "high_warn": 17,   "high_alarm": 20,   "unit": "L/min"},
-    "Depth":      {"low_alarm": 0,    "low_warn": 0,    "high_warn": 1.3,  "high_alarm": 1.5,  "unit": "m"},
+    "RPM":        {"low_alarm": -1,   "low_warn": -1,   "high_warn": 17,   "high_alarm": 20,   "unit": "RPM"},
+    "Flow":       {"low_alarm": -1,   "low_warn": -1,   "high_warn": 17,   "high_alarm": 20,   "unit": "L/min"},
+    "Depth":      {"low_alarm": -1,   "low_warn": -1,   "high_warn": 1.3,  "high_alarm": 1.5,  "unit": "m"},
     "Roll":       {"low_alarm": -7,   "low_warn": -5,   "high_warn": 5,    "high_alarm": 7,    "unit": "deg"},
     "Pitch":      {"low_alarm": -7,   "low_warn": -5,   "high_warn": 5,    "high_alarm": 7,    "unit": "deg"},
     "Yaw":        {"low_alarm": -180, "low_warn": -180, "high_warn": 180,  "high_alarm": 180,  "unit": "deg"},

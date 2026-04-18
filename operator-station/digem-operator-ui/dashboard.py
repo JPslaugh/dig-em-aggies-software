@@ -158,14 +158,8 @@ class SensorCard(QFrame):
         self._set_border("#c8820a")
 
     def check_stale(self):
-        # FIX #2: fire stale if data was received but went stale,
-        # OR if no data was ever received after STALE_TIMEOUT from startup
-        if self._last_update:
-            if time.time() - self._last_update > STALE_TIMEOUT:
-                self.mark_stale()
-        else:
-            if time.time() - self._startup_time > STALE_TIMEOUT:
-                self.mark_stale()
+        if self._last_update and time.time() - self._last_update > STALE_TIMEOUT:
+            self.mark_stale()
 
 
 #Power rail card

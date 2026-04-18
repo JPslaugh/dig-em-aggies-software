@@ -20,7 +20,9 @@ from controls_tab import ControlsTab
 from log_tab import LogTab
 from mqtt_publisher import MQTTPublisher
 from io_list_tab import IOListTab
+from udp_listener import UDPListener
 
+# ── Dark maroon theme palette ─────────────────────────────────────────────────
 DARK_STYLE = """
 QMainWindow, QWidget {
     background-color: #1a0000;
@@ -85,6 +87,7 @@ QFrame[frameShape="4"], QFrame[frameShape="5"] {
 }
 """
 
+# ── Password dialog ───────────────────────────────────────────────────────────
 class PasswordDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -118,6 +121,7 @@ class PasswordDialog(QDialog):
         return self.input.text()
 
 
+# ── Connection status indicator ───────────────────────────────────────────────
 class ConnectionDot(QWidget):
     def __init__(self, label, parent=None):
         super().__init__(parent)
@@ -145,6 +149,7 @@ class ConnectionDot(QWidget):
             self.dot.setStyleSheet("color: #cc2222; background: transparent;")
 
 
+# ── System state badge ────────────────────────────────────────────────────────
 class StateBadge(QLabel):
     STATE_COLORS = {
         State.ESTOPPED: "#cc2222",
@@ -175,6 +180,7 @@ class StateBadge(QLabel):
         """)
 
 
+# ── Soft stop button (cuts all relay channels via Modbus, does NOT cut power) ──
 class SoftStopButton(QPushButton):
     def __init__(self, parent=None):
         super().__init__("ALL OUTPUTS OFF", parent)
@@ -201,6 +207,7 @@ class SoftStopButton(QPushButton):
         """)
 
 
+# ── Top bar ───────────────────────────────────────────────────────────────────
 class TopBar(QWidget):
     estop_triggered  = pyqtSignal()
     reset_triggered  = pyqtSignal()
@@ -308,6 +315,7 @@ class TopBar(QWidget):
         self.state_badge.set_state(state)
 
 
+# ── Placeholder tab ───────────────────────────────────────────────────────────
 class PlaceholderTab(QWidget):
     def __init__(self, name, parent=None):
         super().__init__(parent)
@@ -320,6 +328,7 @@ class PlaceholderTab(QWidget):
         layout.addWidget(lbl)
 
 
+# ── Main window ───────────────────────────────────────────────────────────────
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -388,6 +397,13 @@ class MainWindow(QMainWindow):
         self._conn_timer.timeout.connect(self._poll_connections)
         self._conn_timer.start(1000)
 
+        # UDP listener — receives Teensy broadcasts
+        self._udp = UDPListener(self)
+        self._udp.sensor_received.connect(self.dispatch_sensor)
+        self._udp.power_received.connect(self.dispatch_power)
+        self._udp.connection_changed.connect(self.topbar.update_connection)
+        self._udp.start()
+
     def _on_tab_change(self, index):
         if index == self._controls_tab_index and not self._controls_unlocked:
             # Block the switch, show password dialog
@@ -440,6 +456,7 @@ class MainWindow(QMainWindow):
         )
 
     def closeEvent(self, event):
+        self._udp.stop()
         self._mqtt.shutdown()
         super().closeEvent(event)
 
@@ -488,6 +505,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Software reset — system IDLE. Physical E-stop confirmed clear.")
 
 
+# ── Entry point ───────────────────────────────────────────────────────────────
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("DiGEM TBM Operator Station")
