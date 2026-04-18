@@ -97,7 +97,7 @@ void setup() {
 
     // Ethernet
     Ethernet.begin(mac, ip, gateway, gateway, subnet);
-    delay(500);
+    delay(2000);  // wait for link negotiation
     Serial.print("IP: ");
     Serial.println(Ethernet.localIP());
     Serial.print("Link: ");
