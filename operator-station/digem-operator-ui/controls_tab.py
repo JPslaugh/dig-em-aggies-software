@@ -262,7 +262,7 @@ class RelayPanel(QWidget):
         grid.setSpacing(8)
         for idx, (ch, (lbl, note, harmful, vac)) in enumerate(channels.items()):
             btn = ChannelButton(relay, ch, lbl, note, harmful, vac)
-            btn.toggled.connect(lambda ch=ch, b=btn: self._on_toggle(ch, b._on))
+            btn.toggled.connect(self._on_toggle)
             self._ch_widgets[ch] = btn
             grid.addWidget(btn, idx // 4, idx % 4)
         lay.addLayout(grid)
