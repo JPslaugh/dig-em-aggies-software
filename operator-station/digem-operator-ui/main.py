@@ -1,6 +1,13 @@
 import sys
 import os
+import traceback
 os.environ.setdefault("QT_QPA_PLATFORM", "wayland")
+
+def _excepthook(exc_type, exc_value, exc_tb):
+    traceback.print_exception(exc_type, exc_value, exc_tb)
+    with open("/tmp/ui_crash.txt", "w") as f:
+        traceback.print_exception(exc_type, exc_value, exc_tb, file=f)
+sys.excepthook = _excepthook
 
 import os
 
@@ -330,6 +337,8 @@ class PlaceholderTab(QWidget):
 
 # ── Main window ───────────────────────────────────────────────────────────────
 class MainWindow(QMainWindow):
+    _relay_connection_result = pyqtSignal(int, bool)  # relay number, connected
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Dig 'Em Aggies — TBM Operator Station")
@@ -338,6 +347,10 @@ class MainWindow(QMainWindow):
 
         self._system_state = State.ESTOPPED
         self._controls_unlocked = False
+        self._relay2_alarm_active = False  # True when ch4 or ch5 on relay 2 is on
+        self._alarm_timer = QTimer(self)
+        self._alarm_timer.setSingleShot(True)
+        self._alarm_timer.timeout.connect(self._on_alarm_timer_expired)
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -360,6 +373,7 @@ class MainWindow(QMainWindow):
         )
 
         self._relay1_connected = False
+        self._relay2_connected = False
 
         # Tabs
         self.tabs = QTabWidget()
@@ -392,10 +406,11 @@ class MainWindow(QMainWindow):
         self.statusBar().setStyleSheet("background-color: #3a0000; color: #ffffff; border-top: 1px solid #7a1515; font-size: 13px;")
         self.statusBar().showMessage("System initializing...")
 
-        # Connection polling timer (placeholder — will wire to real comms later)
+        # Relay connection polling
+        self._relay_connection_result.connect(self._on_relay_connection_result)
         self._conn_timer = QTimer()
         self._conn_timer.timeout.connect(self._poll_connections)
-        self._conn_timer.start(1000)
+        self._conn_timer.start(2000)
 
         # UDP listener — receives Teensy broadcasts
         self._udp = UDPListener(self)
@@ -429,11 +444,11 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("⚠ ALL OUTPUTS OFF — All relay channels zeroed via software. Physical power still live.")
         # TODO: send all-off command to relay 1 and relay 2 via Modbus
 
-    def _set_state(self, state: str):
+    def _set_state(self, state: str, buzzer: bool = False):
         # Guard invalid transitions from dashboard buttons
         if state == State.RUNNING and self._system_state != State.IDLE:
             return
-        if state == State.IDLE and self._system_state not in (State.RUNNING, State.STARTING):
+        if state == State.IDLE and self._system_state not in (State.RUNNING, State.STARTING, State.ESTOPPED):
             return
         self._system_state = state
         self.topbar.set_state(state)
@@ -442,18 +457,28 @@ class MainWindow(QMainWindow):
         self.tab_power.set_system_state(state)
         self.tab_controls.set_system_state(state)
         self.tab_log.log_state(state)
+        self._apply_signal_lights(state, buzzer=buzzer)
         # Reset button only enabled when E-STOPPED and Relay 1 is back online
         self.topbar.set_reset_enabled(
             state == State.ESTOPPED and self._relay1_connected
         )
 
     def _set_relay1_connected(self, connected: bool):
+        was_connected = self._relay1_connected
         self._relay1_connected = connected
         self.topbar.update_connection("relay1", connected)
-        # Re-evaluate reset button state
         self.topbar.set_reset_enabled(
             self._system_state == State.ESTOPPED and connected
         )
+        # Auto-reset to IDLE when relay 1 comes online from E-STOPPED
+        if not was_connected and connected and self._system_state == State.ESTOPPED:
+            self.software_reset()
+        # Physical E-brake cuts Relay 1 power — detect as connection drop
+        if was_connected and not connected:
+            self._set_state(State.ESTOPPED, buzzer=True)
+            self._set_alarm_light(True)
+            self._alarm_timer.start(5000)
+            self.tab_log.log_estop()
 
     def closeEvent(self, event):
         self._udp.stop()
@@ -481,6 +506,64 @@ class MainWindow(QMainWindow):
         self.tab_io.update_relay(relay, ch, state)
         if relay == 1 and ch in (7, 8):
             self.tab_power.set_pump_state(state)
+        if relay == 2 and ch in (4, 5):
+            self._relay2_alarm_active = state
+            self._set_alarm_light(state)
+        import threading
+        threading.Thread(target=self._modbus_write_coil,
+                         args=(relay, ch, state), daemon=True).start()
+
+    def _modbus_write_coil(self, relay: int, ch: int, state: bool):
+        from pymodbus.client import ModbusTcpClient
+        key  = f"relay{relay}"
+        ip   = NETWORK[key]["ip"]
+        port = NETWORK[key]["port"]
+        try:
+            c = ModbusTcpClient(ip, port=port, timeout=2)
+            if c.connect():
+                c.write_coil(ch - 1, state)
+                c.close()
+        except Exception:
+            pass
+
+    def _apply_signal_lights(self, state: str, buzzer: bool = False):
+        # CH1=Green, CH2=Yellow, CH3=Red, CH4=Buzzer, CH5=GND (always on)
+        lights = {
+            State.RUNNING:  {1: True,  2: False, 3: False},
+            State.IDLE:     {1: False, 2: True,  3: False},
+            State.STARTING: {1: False, 2: True,  3: False},
+            State.ESTOPPED: {1: False, 2: False, 3: True },
+        }
+        mapping = lights.get(state, {})
+        mapping[4] = buzzer   # CH4 buzzer
+        mapping[5] = True     # CH5 GND always on
+        for ch, val in mapping.items():
+            self.tab_controls.set_channel(2, ch, val)
+        import threading
+        threading.Thread(target=self._write_signal_lights,
+                         args=(dict(mapping),), daemon=True).start()
+
+    def _write_signal_lights(self, mapping: dict):
+        from pymodbus.client import ModbusTcpClient
+        ip   = NETWORK["relay2"]["ip"]
+        port = NETWORK["relay2"]["port"]
+        try:
+            c = ModbusTcpClient(ip, port=port, timeout=2)
+            if c.connect():
+                for ch, val in mapping.items():
+                    c.write_coil(ch - 1, val)
+                c.close()
+        except Exception:
+            pass
+
+    def _set_alarm_light(self, on: bool):
+        self.tab_dashboard.signal_panel.set_light("alarm", on)
+
+    def _on_alarm_timer_expired(self):
+        if not self._relay2_alarm_active:
+            self._set_alarm_light(False)
+        # Turn buzzer off after 5s
+        self._apply_signal_lights(self._system_state, buzzer=False)
 
     def _on_mining_toggled(self, active: bool):
         self._mining_active = active
@@ -491,8 +574,30 @@ class MainWindow(QMainWindow):
         )
 
     def _poll_connections(self):
-        # Placeholder — will be replaced by real connection manager
-        pass
+        import threading
+        threading.Thread(target=self._poll_relay, args=(1,), daemon=True).start()
+        threading.Thread(target=self._poll_relay, args=(2,), daemon=True).start()
+
+    def _poll_relay(self, relay: int):
+        from pymodbus.client import ModbusTcpClient
+        key  = f"relay{relay}"
+        ip   = NETWORK[key]["ip"]
+        port = NETWORK[key]["port"]
+        try:
+            c  = ModbusTcpClient(ip, port=port, timeout=1)
+            ok = c.connect()
+            c.close()
+        except Exception:
+            ok = False
+        self._relay_connection_result.emit(relay, ok)
+
+    def _on_relay_connection_result(self, relay: int, connected: bool):
+        if relay == 1:
+            self._set_relay1_connected(connected)
+        else:
+            if connected != self._relay2_connected:
+                self._relay2_connected = connected
+                self.topbar.update_connection("relay2", connected)
 
     def software_reset(self):
         """Software-only reset — clears E-STOPPED state back to IDLE.

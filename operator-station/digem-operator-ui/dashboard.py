@@ -677,9 +677,6 @@ class DashboardTab(QWidget):
                 self.warnings.clear_warning(f"{key}_alarm")
                 self.warnings.clear_warning(f"{key}_warn")
                 self.warning_cleared.emit(key)
-                # Clear alarm light if no more alarms
-                if not self.warnings.has_alarms():
-                    self.signal_panel.set_light("alarm", False)
 
     def update_power(self, key: str, voltage: float, current: float):
         if key in self.power_cards:
@@ -715,7 +712,7 @@ class DashboardTab(QWidget):
         self.stop_btn.setEnabled(state == State.RUNNING)
 
         # FIX #4: auto-update signal lights
-        self.signal_panel.apply_state(state, has_alarm=self.warnings.has_alarms())
+        self.signal_panel.apply_state(state)
 
         # Reset mining flag on E-stop
         if state == State.ESTOPPED:

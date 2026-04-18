@@ -1,7 +1,7 @@
 # Network configuration — change IPs here for laptop vs Pi deployment
 NETWORK = {
-    "relay1":   {"ip": "192.168.100.10", "port": 502},
-    "relay2":   {"ip": "192.168.100.11", "port": 502},
+    "relay1":   {"ip": "192.168.100.11", "port": 502},
+    "relay2":   {"ip": "192.168.100.10", "port": 502},
     "teensy1":  {"ip": "192.168.100.60", "port": 5000},  # TBD — assign static IP
     "teensy2":  {"ip": "192.168.100.61", "port": 5001},  # TBD — assign static IP
 }
