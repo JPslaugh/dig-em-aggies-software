@@ -60,6 +60,20 @@ python demo.py
 
 ---
 
+## Communication Protocol
+
+| Link | Protocol | Notes |
+|---|---|---|
+| Operator UI → Relay 1 | Modbus TCP | Port 502, 192.168.100.10 |
+| Operator UI → Relay 2 | Modbus TCP | Port 502, 192.168.100.11 |
+| Teensy 1 → Pi / UI | UDP | Teensy broadcasts sensor JSON packets |
+| Teensy 2 → Pi / UI | UDP | Teensy broadcasts power monitoring JSON packets |
+| UI → MQTT Broker | MQTT | Competition telemetry at 0.1 Hz, broker provided at competition |
+
+Teensy firmware is uploaded via USB. At runtime the Teensys communicate over Ethernet via UDP broadcasts. The relay boards use Modbus TCP.
+
+---
+
 ## Network Configuration
 
 | Device | IP | Role |
