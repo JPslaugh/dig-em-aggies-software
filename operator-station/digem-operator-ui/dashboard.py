@@ -669,7 +669,6 @@ class DashboardTab(QWidget):
                 self.warnings.clear_warning(f"{key}_warn")
                 self.warnings.set_warning(f"{key}_alarm", f"{key}: {value:.1f} — {lbl}", is_alarm=True)
                 self.warning_raised.emit(f"{key}_alarm", f"{key}: {lbl}", True)
-                self.signal_panel.set_light("alarm", True)
             elif lbl in ("LOW WARN", "HIGH WARN"):
                 self.warnings.clear_warning(f"{key}_alarm")
                 self.warnings.set_warning(f"{key}_warn", f"{key}: {value:.1f} — {lbl}", is_alarm=False)
