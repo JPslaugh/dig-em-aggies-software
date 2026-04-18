@@ -82,8 +82,6 @@ void setup() {
     delay(2000);  // wait for link negotiation
     Serial.print("IP: ");
     Serial.println(Ethernet.localIP());
-    Serial.print("Link: ");
-    Serial.println(Ethernet.linkStatus() == LinkON ? "UP" : "DOWN");
     udp.begin(UDP_PORT);
 
     // I2C
@@ -131,7 +129,8 @@ void loop() {
 
         broadcast_packet(r1, r2, r24, r12, t1, t2);
 
-        Serial.print("R1:");  Serial.print(r1.voltage,  2); Serial.print("V ");
+        Serial.print("Link:"); Serial.print(Ethernet.linkStatus() == LinkON ? "UP" : "DOWN");
+        Serial.print(" R1:");  Serial.print(r1.voltage,  2); Serial.print("V ");
                               Serial.print(r1.current,  3); Serial.print("A ");
                               Serial.print(r1.watts,    2); Serial.print("W  ");
         Serial.print("R2:");  Serial.print(r2.voltage,  2); Serial.print("V ");
