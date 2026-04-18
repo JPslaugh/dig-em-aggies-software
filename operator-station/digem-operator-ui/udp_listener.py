@@ -77,17 +77,17 @@ class UDPListener(QObject):
             self.sensor_received.emit("Depth", depth / 100.0)  # cm → m
 
     def _parse_teensy2(self, pkt: dict):
-        if "ina_relay1_v" in pkt:
+        if "ina_relay1_v" in pkt and pkt["ina_relay1_v"] >= 0:
             self.power_received.emit("relay1", pkt["ina_relay1_v"], pkt["ina_relay1_a"])
-        if "ina_relay2_v" in pkt:
+        if "ina_relay2_v" in pkt and pkt["ina_relay2_v"] >= 0:
             self.power_received.emit("relay2", pkt["ina_relay2_v"], pkt["ina_relay2_a"])
-        if "ina_24v_v" in pkt:
+        if "ina_24v_v" in pkt and pkt["ina_24v_v"] >= 0:
             self.power_received.emit("24v", pkt["ina_24v_v"], pkt["ina_24v_a"])
-        if "ina_12v_v" in pkt:
+        if "ina_12v_v" in pkt and pkt["ina_12v_v"] >= 0:
             self.power_received.emit("12v", pkt["ina_12v_v"], pkt["ina_12v_a"])
-        if "temp1_c" in pkt:
+        if "temp1_c" in pkt and pkt["temp1_c"] > -100:
             self.sensor_received.emit("Encl_Temp1", pkt["temp1_c"])
-        if "temp2_c" in pkt:
+        if "temp2_c" in pkt and pkt["temp2_c"] > -100:
             self.sensor_received.emit("Encl_Temp2", pkt["temp2_c"])
 
     def _stale_loop(self):
