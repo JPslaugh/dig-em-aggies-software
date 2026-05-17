@@ -22,9 +22,9 @@ echo Installing dependencies...
 pip install -r requirements.txt --quiet --user
 if errorlevel 1 (
     echo.
-    echo Dependency install failed. Try running as Administrator.
-    pause
-    exit /b 1
+    echo Warning: dependency install failed. Trying to launch anyway...
+    echo If the app fails to start, run this script as Administrator.
+    echo.
 )
 
 echo.
