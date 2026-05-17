@@ -86,8 +86,8 @@ python3 demo.py
 
 | Link | Protocol | Notes |
 |---|---|---|
-| Operator UI → Relay 1 | Modbus TCP | Port 502, 192.168.100.10 |
-| Operator UI → Relay 2 | Modbus TCP | Port 502, 192.168.100.11 |
+| Operator UI → Relay 1 | Modbus TCP | Port 502 |
+| Operator UI → Relay 2 | Modbus TCP | Port 502 |
 | Teensy 1 → Pi / UI | UDP | Teensy broadcasts sensor JSON packets |
 | Teensy 2 → Pi / UI | UDP | Teensy broadcasts power monitoring JSON packets |
 | UI → MQTT Broker | MQTT | Competition telemetry at 0.1 Hz, broker provided at competition |
@@ -98,12 +98,7 @@ Teensy firmware is uploaded via USB. At runtime the Teensys communicate over Eth
 
 ## Network Configuration
 
-| Device | IP | Role |
-|---|---|---|
-| Operator Laptop | 192.168.100.2 | Surface control |
-| Raspberry Pi 5 (TCU) | 192.168.100.50 | Telemetry control unit |
-| Relay 1 | 192.168.100.10 | Harmful devices (PNOZ S5 protected) |
-| Relay 2 | 192.168.100.11 | Non-harmful devices |
+Network IPs are configured in `operator-station/digem-operator-ui/config.py`. Update the `NETWORK` block to match your deployment before running.
 
 ---
 
