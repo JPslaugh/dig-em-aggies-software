@@ -38,24 +38,46 @@ The operator UI is a PyQt5 desktop application providing real-time telemetry, re
 - Event log with category filtering and CSV/text export
 - IO list compliant with NaBC 2026 Section 8d
 
-### Running on Windows
+### Prerequisites
 
-Download the latest `DiGEM-Operator-UI.exe` from the [Releases](https://github.com/JPslaugh/dig-em-aggies-software/releases) page and run it directly — no installation required.
+- Python 3.10+ — download from [python.org](https://python.org)
+- Git — download from [git-scm.com](https://git-scm.com)
 
-### Running from Source
-
-Requires Python 3.10+.
+### Download
 
 ```bash
-cd operator-station/digem-operator-ui
-pip install -r requirements.txt
-python main.py
+git clone https://github.com/JPslaugh/dig-em-aggies-software.git
+cd dig-em-aggies-software/operator-station/digem-operator-ui
 ```
 
-For demo mode with simulated live data:
+### Windows
+
+Double-click `run_windows.bat` — installs dependencies and launches automatically.
+
+> Requires Python with **"Add Python to PATH"** checked during install.
+
+### macOS
 
 ```bash
+bash run_mac.sh
+```
+
+### Linux
+
+```bash
+bash run_linux.sh
+```
+
+### Demo Mode (no TBM hardware required)
+
+Runs with simulated live data — useful for testing the UI off-site:
+
+```bash
+# Windows
 python demo.py
+
+# macOS / Linux
+python3 demo.py
 ```
 
 ---
