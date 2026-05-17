@@ -52,9 +52,10 @@ cd dig-em-aggies-software/operator-station/digem-operator-ui
 
 ### Windows
 
-Double-click `run_windows.bat` — installs dependencies and launches automatically.
-
-> Requires Python with **"Add Python to PATH"** checked during install.
+1. Install Python 3.10+ from [python.org](https://python.org) — check **"Add Python to PATH"** during install
+2. Clone or download the repo
+3. Open the `operator-station/digem-operator-ui/` folder
+4. Double-click **`run_windows.bat`** — installs dependencies and launches automatically
 
 ### macOS
 
