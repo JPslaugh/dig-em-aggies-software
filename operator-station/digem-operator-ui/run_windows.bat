@@ -19,7 +19,7 @@ set QT_QPA_PLATFORM=windows
 
 :: Install/update dependencies
 echo Installing dependencies...
-pip install -r requirements.txt --quiet
+pip install -r requirements.txt --quiet --user
 if errorlevel 1 (
     echo.
     echo Dependency install failed. Try running as Administrator.
