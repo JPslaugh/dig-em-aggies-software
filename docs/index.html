@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DiGEM Tools — Dig 'Em Aggies</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0f0f0f;
+    color: #eee;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 2rem;
+  }
+  h1 { font-size: 2rem; color: #fff; letter-spacing: 0.05em; }
+  .sub { color: #666; font-size: 0.95rem; }
+  .cards {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  a.card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    background: #181818;
+    border: 1px solid #2e2e2e;
+    border-radius: 10px;
+    padding: 2rem 2.5rem;
+    text-decoration: none;
+    color: inherit;
+    width: 220px;
+    transition: border-color 0.2s, transform 0.15s;
+  }
+  a.card:hover {
+    border-color: #5a0000;
+    transform: translateY(-3px);
+  }
+  .card-icon { font-size: 2rem; }
+  .card-title { font-size: 1.1rem; font-weight: 600; color: #fff; }
+  .card-desc { font-size: 0.85rem; color: #888; }
+  footer { color: #444; font-size: 0.8rem; }
+</style>
+</head>
+<body>
+  <div>
+    <h1>DiGEM Tools</h1>
+    <p class="sub" style="text-align:center;margin-top:0.4rem;">Dig 'Em Aggies — NaBC 2026</p>
+  </div>
+  <div class="cards">
+    <a class="card" href="bore_planner.html">
+      <span class="card-icon">📐</span>
+      <span class="card-title">Bore Planner</span>
+      <span class="card-desc">Plan bore path, depth profile, and launch angle</span>
+    </a>
+    <a class="card" href="power_budget.html">
+      <span class="card-icon">⚡</span>
+      <span class="card-title">Power Budget</span>
+      <span class="card-desc">Track system power draw vs 100kW competition limit</span>
+    </a>
+  </div>
+  <footer>Texas A&amp;M — Not-a-Boring Competition 2026</footer>
+</body>
+</html>

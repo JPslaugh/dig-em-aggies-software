@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DiGEM Bore Path Planner</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0f0f0f;
+    color: #eee;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    font-size: 14px;
+  }
+
+  /* ── LEFT PANEL ── */
+  #panel {
+    width: 320px;
+    min-width: 320px;
+    background: #181818;
+    border-right: 1px solid #2e2e2e;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  #panel h1 {
+    background: #5a0000;
+    color: #fff;
+    font-size: 1rem;
+    padding: 16px 18px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  .section {
+    padding: 16px 18px;
+    border-bottom: 1px solid #242424;
+  }
+  .section-title {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #666;
+    margin-bottom: 14px;
+    font-weight: 600;
+  }
+
+  /* sliders */
+  .slider-row { margin-bottom: 16px; }
+  .slider-row:last-child { margin-bottom: 0; }
+
+  .slider-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .slider-name {
+    font-size: 0.88rem;
+    color: #c8c8c8;
+    font-weight: 500;
+  }
+  .slider-val {
+    font-size: 1rem;
+    color: #FFD700;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    min-width: 70px;
+    text-align: right;
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed #555;
+    outline: none;
+    cursor: text;
+    padding: 0 2px;
+    font-family: inherit;
+  }
+  .slider-val:focus {
+    border-bottom-color: #FFD700;
+    background: #1e1e1e;
+  }
+  input[type=range] {
+    width: 100%;
+    accent-color: #FFD700;
+    cursor: pointer;
+    height: 6px;
+  }
+
+  /* stats */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .stat {
+    background: #202020;
+    border: 1px solid #2e2e2e;
+    border-radius: 8px;
+    padding: 12px 10px;
+    text-align: center;
+  }
+  .stat-val {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #FFD700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+  .stat-lbl {
+    font-size: 0.72rem;
+    color: #666;
+    margin-top: 5px;
+    line-height: 1.4;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .stat.warn { border-color: #FF4444; }
+  .stat.warn .stat-val { color: #FF5555; }
+  .stat.ok   { border-color: #2a5a2a; }
+  .stat.ok   .stat-val { color: #44DD88; }
+
+  #warning {
+    display: none;
+    background: #2a0000;
+    border: 1px solid #FF4444;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 0.82rem;
+    color: #FF8888;
+    margin-top: 12px;
+    line-height: 1.6;
+  }
+
+  .nabc-note {
+    font-size: 0.78rem;
+    color: #444;
+    line-height: 1.7;
+  }
+  .nabc-note strong { color: #666; }
+
+  /* ── CANVAS AREA ── */
+  #canvas-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #0f0f0f;
+    padding: 16px 20px 12px;
+    gap: 10px;
+    overflow: hidden;
+  }
+
+  #canvas-title {
+    font-size: 0.78rem;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  canvas {
+    width: 100%;
+    flex: 1;
+    border-radius: 10px;
+    border: 1px solid #222;
+    display: block;
+  }
+
+  #legend {
+    display: flex;
+    gap: 22px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .leg-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.78rem;
+    color: #888;
+  }
+  .leg-line {
+    width: 18px;
+    height: 3px;
+    border-radius: 2px;
+  }
+  .leg-box {
+    width: 14px;
+    height: 10px;
+    border-radius: 2px;
+    opacity: 0.5;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ LEFT PANEL ═══ -->
+<div id="panel">
+  <h1>DiGEM — Bore Planner</h1>
+
+  <div class="section">
+    <div class="section-title">Bore Parameters</div>
+
+    <div class="slider-row">
+      <div class="slider-label">
+        <span class="slider-name">Launch Angle</span>
+        <input class="slider-val" id="v-launch" value="2.5°">
+      </div>
+      <input type="range" id="s-launch" min="0" max="50" step="0.1" value="2.5">
+    </div>
+
+    <div class="slider-row">
+      <div class="slider-label">
+        <span class="slider-name">Turn Starts At</span>
+        <input class="slider-val" id="v-tstart" value="16.4ft">
+      </div>
+      <input type="range" id="s-tstart" min="0" max="80" step="0.5" value="5">
+    </div>
+
+    <div class="slider-row">
+      <div class="slider-label">
+        <span class="slider-name">Turn Radius</span>
+        <input class="slider-val" id="v-tlen" value="200ft">
+      </div>
+      <input type="range" id="s-tlen" min="5" max="152" step="1" value="61">
+    </div>
+
+    <div class="slider-row">
+      <div class="slider-label">
+        <span class="slider-name">Total Bore Length</span>
+        <input class="slider-val" id="v-blen" value="66ft">
+      </div>
+      <input type="range" id="s-blen" min="5" max="150" step="1" value="20">
+    </div>
+
+    <div class="slider-row">
+      <div class="slider-label">
+        <span class="slider-name">Starting Depth</span>
+        <input class="slider-val" id="v-sdepth" value="0.0ft">
+      </div>
+      <input type="range" id="s-sdepth" min="0" max="10" step="0.1" value="0">
+    </div>
+
+    <div class="slider-row">
+      <div class="slider-label">
+        <span class="slider-name">Machine Diameter</span>
+        <input class="slider-val" id="v-diam" value="22cm">
+      </div>
+      <input type="range" id="s-diam" min="0.1" max="1.5" step="0.01" value="0.22">
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ CANVAS AREA ═══ -->
+<div id="canvas-wrap">
+  <div id="canvas-title">Side Profile &mdash; True 1:1 scale (angles and arcs are geometrically accurate)</div>
+  <canvas id="c"></canvas>
+  <div id="legend">
+    <div class="leg-item"><div class="leg-line" style="background:#FFD700"></div>Centerline</div>
+    <div class="leg-item"><div class="leg-box" style="background:#FFD700"></div>Bore shell</div>
+    <div class="leg-item"><div class="leg-line" style="background:#88cc88"></div>Ground surface</div>
+    <div class="leg-item"><div class="leg-line" style="background:#00BFFF;border-top:2px dashed #00BFFF;height:0"></div>Shell clearance</div>
+    <div class="leg-item"><div class="leg-line" style="background:#aa88ff"></div>Turn zone</div>
+    <div class="leg-item">
+      <div style="width:10px;height:10px;border-radius:50%;background:#44DD88"></div>Launch / Breakthrough
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const FT = 3.28084;  // meters → feet
+const fmt = (m, dec=1) => (m * FT).toFixed(dec) + 'ft';
+
+const sliders = {
+  launch : document.getElementById('s-launch'),
+  tstart : document.getElementById('s-tstart'),
+  tlen   : document.getElementById('s-tlen'),
+  blen   : document.getElementById('s-blen'),
+  sdepth : document.getElementById('s-sdepth'),
+  diam   : document.getElementById('s-diam'),
+};
+const displays = {
+  launch : document.getElementById('v-launch'),
+  tstart : document.getElementById('v-tstart'),
+  tlen   : document.getElementById('v-tlen'),
+  blen   : document.getElementById('v-blen'),
+  sdepth : document.getElementById('v-sdepth'),
+  diam   : document.getElementById('v-diam'),
+};
+
+function vals() {
+  return {
+    launch : +sliders.launch.value,
+    tstart : +sliders.tstart.value,
+    tlen   : +sliders.tlen.value,
+    blen   : +sliders.blen.value,
+    sdepth : +sliders.sdepth.value,
+    diam   : +sliders.diam.value,
+  };
+}
+
+function updateDisplays(v) {
+  const f = document.activeElement;
+  if (f !== displays.launch) displays.launch.value = v.launch.toFixed(1) + '°';
+  if (f !== displays.tstart) displays.tstart.value = fmt(v.tstart);
+  if (f !== displays.tlen)   displays.tlen.value   = fmt(v.tlen, 0) + ' R';
+  if (f !== displays.blen)   displays.blen.value   = fmt(v.blen, 0);
+  if (f !== displays.sdepth) displays.sdepth.value = fmt(v.sdepth, 1);
+  if (f !== displays.diam)   displays.diam.value   = Math.round(v.diam * 100) + 'cm';
+}
+
+// parse a number out of a string like "2.5°" or "200ft" or "22cm"
+function parseVal(str) { return parseFloat(str.replace(/[^\d.\-]/g, '')); }
+
+// when user types into a display input, update the slider and redraw
+function wireInput(dispId, sliderId, toMeters) {
+  const disp  = document.getElementById(dispId);
+  const slide = document.getElementById(sliderId);
+  disp.addEventListener('change', () => {
+    const raw = parseVal(disp.value);
+    if (isNaN(raw)) { draw(); return; }
+    const m = toMeters(raw);
+    slide.value = Math.min(Math.max(m, +slide.min), +slide.max);
+    draw();
+  });
+}
+wireInput('v-launch', 's-launch', x => x);            // degrees, no conversion
+wireInput('v-sdepth', 's-sdepth', x => x / FT);      // ft → m
+wireInput('v-tstart', 's-tstart', x => x / FT);       // ft → m
+wireInput('v-tlen',   's-tlen',   x => x / FT);       // ft → m
+wireInput('v-blen',   's-blen',   x => x / FT);       // ft → m
+wireInput('v-diam',   's-diam',   x => x / 100);      // cm → m
+
+function generatePath(v) {
+  const step = 0.05;
+  const pts  = [];
+  let x = 0, depth = v.sdepth;
+
+  for (let s = 0; s <= v.blen + step; s += step) {
+    let h;
+    if (s < v.tstart) {
+      h = -v.launch;
+    } else {
+      // constant curvature: heading changes at 1/R rad per meter = (180/π)/R deg per meter
+      const turnRate = (180 / Math.PI) / v.tlen;
+      h = -v.launch + turnRate * (s - v.tstart);
+    }
+
+    const hr = h * Math.PI / 180;
+    pts.push({ s, x, depth, heading: h });
+    x     += step * Math.cos(hr);
+    depth -= step * Math.sin(hr);
+    if (depth < 0 && s > 0.5) {
+      depth = 0;
+      pts.push({ s, x, depth, heading: h });
+      break;
+    }
+  }
+  return pts;
+}
+
+function analyzeShell(pts, radius) {
+  let minClear = Infinity, warnPt = null;
+  pts.forEach(p => {
+    const c = p.depth - radius;
+    if (c < minClear) { minClear = c; warnPt = p; }
+  });
+  return { minClear, warnPt };
+}
+
+function niceStep(range, ticks) {
+  const raw = range / ticks;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw || 1)));
+  const f   = raw / mag;
+  return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag;
+}
+
+function draw() {
+  const v = vals();
+  updateDisplays(v);
+
+  canvas.width  = canvas.offsetWidth  * devicePixelRatio;
+  canvas.height = canvas.offsetHeight * devicePixelRatio;
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+
+  const W = canvas.offsetWidth;
+  const H = canvas.offsetHeight;
+  const pts    = generatePath(v);
+  const radius = v.diam / 2;
+
+  const maxX = Math.max(...pts.map(p => p.x), 1);
+  const maxD = Math.max(...pts.map(p => p.depth), 0.1);
+
+  const PAD = { top: 50, bottom: 40, left: 72, right: 40 };
+  const PW  = W - PAD.left - PAD.right;
+  const PH  = H - PAD.top  - PAD.bottom;
+
+  const scaleX = PW / maxX;
+  const ve     = 1;              // 1:1 aspect — angles and arcs are geometrically true
+  const scaleY = scaleX;
+  const SY     = PAD.top + 40;   // surface Y on canvas
+
+  const cx = x => PAD.left + x * scaleX;
+  const cy = d => SY + d * scaleY;
+
+  // ── background ──────────────────────
+  ctx.fillStyle = '#0f0f0f';
+  ctx.fillRect(0, 0, W, H);
+
+  // above-ground sky strip
+  ctx.fillStyle = '#141f14';
+  ctx.fillRect(PAD.left, 0, PW, SY);
+
+  // soil gradient
+  const sg = ctx.createLinearGradient(0, SY, 0, H);
+  sg.addColorStop(0,   '#261808');
+  sg.addColorStop(0.5, '#1c1206');
+  sg.addColorStop(1,   '#120c04');
+  ctx.fillStyle = sg;
+  ctx.fillRect(PAD.left, SY, PW, H - SY);
+
+  // ── grid ────────────────────────────
+  ctx.lineWidth = 1;
+  // depth grid — always 1ft increments
+  for (let dFt = 0; dFt <= maxD * FT * 1.2; dFt += 1) {
+    const d = dFt / FT;
+    const y = cy(d);
+    if (y > H - PAD.bottom + 2) break;
+    ctx.strokeStyle = dFt === 0 ? '#333' : '#1e1e1e';
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(W - PAD.right, y); ctx.stroke();
+    ctx.fillStyle = '#888';
+    ctx.font = 'bold 15px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(dFt.toFixed(0) + 'ft', PAD.left - 6, y + 4);
+  }
+  // horizontal distance grid — always 1ft increments
+  for (let xFt = 0; xFt <= maxX * FT * 1.1; xFt += 1) {
+    const x = xFt / FT;
+    const canX = cx(x);
+    if (canX > W - PAD.right + 2) break;
+    ctx.strokeStyle = '#1e1e1e';
+    ctx.beginPath(); ctx.moveTo(canX, PAD.top); ctx.lineTo(canX, H - PAD.bottom); ctx.stroke();
+    ctx.fillStyle = '#888';
+    ctx.font = 'bold 15px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(xFt.toFixed(0) + 'ft', canX, H - PAD.bottom + 18);
+    ctx.fillStyle = '#4a5e4a';
+    ctx.fillText(xFt.toFixed(0) + 'ft', canX, SY + 16);
+  }
+
+  // axis labels
+  ctx.fillStyle = '#555';
+  ctx.font = '14px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Horizontal Distance', W / 2, H - 4);
+  ctx.save();
+  ctx.translate(14, H / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Depth Below Surface', 0, 0);
+  ctx.restore();
+
+  // ── surface line ────────────────────
+  ctx.strokeStyle = '#5a9e5a';
+  ctx.lineWidth   = 2;
+  ctx.beginPath(); ctx.moveTo(PAD.left, SY); ctx.lineTo(W - PAD.right, SY); ctx.stroke();
+
+  if (pts.length < 2) return;
+
+  // ── turn zone shading ────────────────
+  const tsp = pts.find(p => p.s >= v.tstart);
+  if (tsp) {
+    ctx.strokeStyle = 'rgba(150,120,255,0.5)';
+    ctx.lineWidth   = 1.5;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath(); ctx.moveTo(cx(tsp.x), PAD.top); ctx.lineTo(cx(tsp.x), H - PAD.bottom); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(200,170,255,1)';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Turn begins', cx(tsp.x) + 6, PAD.top + 24);
+  }
+
+  // ── bore shell fill ──────────────────
+  // offset perpendicular to the tangent in canvas space, not just vertically
+  function shellPts(sign) {
+    return pts.map(p => {
+      const h   = p.heading * Math.PI / 180;
+      // tangent vector in canvas pixels
+      const tx  =  Math.cos(h) * scaleX;
+      const ty  = -Math.sin(h) * scaleY;   // canvas y increases downward, depth increases downward
+      const len = Math.sqrt(tx*tx + ty*ty) || 1;
+      // CW perp = (ty, -tx) → points toward bore top (surface side)
+      const px  = ty / len;
+      const py  = -tx / len;
+      const r   = radius * scaleX;         // radius in canvas pixels
+      return [cx(p.x) + sign * px * r, cy(p.depth) + sign * py * r];
+    });
+  }
+  const topPts = shellPts(1);   // toward surface
+  const botPts = shellPts(-1);  // away from surface
+
+  ctx.beginPath();
+  topPts.forEach(([x, y], i) => i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
+  botPts.slice().reverse().forEach(([x, y]) => ctx.lineTo(x, y));
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(255,215,0,0.1)';
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(255,215,0,0.25)';
+  ctx.lineWidth   = 1;
+  ctx.setLineDash([5, 5]);
+  ctx.beginPath();
+  topPts.forEach(([x, y], i) => i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
+  ctx.stroke();
+  ctx.beginPath();
+  botPts.forEach(([x, y], i) => i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── centerline ───────────────────────
+  ctx.strokeStyle = '#FFD700';
+  ctx.lineWidth   = 2.5;
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(cx(p.x), cy(p.depth)) : ctx.lineTo(cx(p.x), cy(p.depth)));
+  ctx.stroke();
+
+  // ── max depth line — surface to top of shell (crown) ────────
+  const deepPt = pts.reduce((a, b) => b.depth > a.depth ? b : a);
+  const crownDepth = deepPt.depth - radius * Math.cos(deepPt.heading * Math.PI / 180);
+  const h_deep = deepPt.heading * Math.PI / 180;
+  const crownCanvasX = cx(deepPt.x) + (-Math.sin(h_deep)) * radius * scaleX;
+  const crownCanvasY = cy(deepPt.depth) + (-Math.cos(h_deep)) * radius * scaleX;
+  ctx.strokeStyle = 'rgba(255,140,0,0.5)';
+  ctx.lineWidth   = 1.5;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(crownCanvasX, SY); ctx.lineTo(crownCanvasX, crownCanvasY); ctx.stroke();
+  ctx.setLineDash([]);
+  // tick at crown
+  ctx.beginPath(); ctx.moveTo(crownCanvasX - 6, crownCanvasY); ctx.lineTo(crownCanvasX + 6, crownCanvasY); ctx.stroke();
+  ctx.fillStyle = '#FF8C00';
+  ctx.font = 'bold 18px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('↓ ' + fmt(crownDepth, 2) + ' crown', crownCanvasX + 10, (SY + crownCanvasY) / 2 + 6);
+
+  // ── shell clearance ──────────────────
+  const { minClear, warnPt } = analyzeShell(pts, radius);
+  if (warnPt) {
+    const wx       = cx(warnPt.x);
+    const shellTop = cy(warnPt.depth - radius);
+    ctx.strokeStyle = '#00BFFF';
+    ctx.lineWidth   = 2;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(wx, SY); ctx.lineTo(wx, shellTop); ctx.stroke();
+    ctx.setLineDash([]);
+    // tick marks at each end
+    [[wx, SY], [wx, shellTop]].forEach(([x, y]) => {
+      ctx.beginPath(); ctx.moveTo(x - 6, y); ctx.lineTo(x + 6, y); ctx.stroke();
+    });
+    ctx.fillStyle = '#00BFFF';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.textAlign = 'left';
+    const lbl = (minClear >= 0 ? '+' : '') + fmt(minClear, 2);
+    ctx.fillText(lbl, wx + 10, (SY + shellTop) / 2 + 6);
+  }
+
+  // ── fully submerged / fully re-emerged markers ───────────────
+  // find first point where crown (top of shell) crosses below surface
+  let submergeP = null, emergeP = null;
+  const firstCrownD = pts[0].depth - radius * Math.cos(pts[0].heading * Math.PI / 180);
+  const startsUnder = firstCrownD > 0;  // crown already below surface at launch
+  for (let i = 1; i < pts.length; i++) {
+    const p        = pts[i];
+    const crownD   = p.depth - radius * Math.cos(p.heading * Math.PI / 180);
+    const prev     = pts[i - 1];
+    const prevCrownD = prev.depth - radius * Math.cos(prev.heading * Math.PI / 180);
+    if (!submergeP && !startsUnder && prevCrownD <= 0 && crownD > 0) submergeP = p;
+    const alreadyUnder = submergeP || startsUnder;
+    if (alreadyUnder && prevCrownD > 0 && crownD <= 0) { emergeP = p; break; }
+  }
+
+  function submergeMarker(p, label, alignRight) {
+    if (!p) return;
+    ctx.fillStyle = '#FF8800';
+    ctx.beginPath(); ctx.arc(cx(p.x), SY, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#FF8800';
+    ctx.font = 'bold 17px sans-serif';
+    ctx.textAlign = alignRight ? 'right' : 'left';
+    const xOff = alignRight ? -10 : 10;
+    ctx.fillText(label, cx(p.x) + xOff, SY - 12);
+    ctx.fillStyle = '#cc6600';
+    ctx.font = 'bold 15px sans-serif';
+    ctx.fillText(fmt(p.x) + ' out', cx(p.x) + xOff, SY - 30);
+  }
+  submergeMarker(submergeP, 'Fully Under', false);
+  submergeMarker(emergeP,   'Shell Resurfaces', true);
+
+  // ── launch marker ────────────────────
+  const p0 = pts[0];
+  ctx.fillStyle = '#44DD88';
+  ctx.beginPath(); ctx.arc(cx(p0.x), cy(p0.depth), 8, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 18px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Launch', cx(p0.x) + 12, cy(p0.depth) + 6);
+
+  // ── exit / end marker ────────────────
+  const pN = pts[pts.length - 1];
+  const breakthrough = pN.depth < 0.02;
+  ctx.fillStyle = breakthrough ? '#44DD88' : '#FF5555';
+  ctx.beginPath(); ctx.arc(cx(pN.x), cy(Math.max(0, pN.depth)), 8, 0, Math.PI * 2); ctx.fill();
+
+  // ── snap bore length to breakthrough if it hit surface early ────
+  const actualLen = pN.s;
+  if (breakthrough && actualLen < v.blen - 0.1) {
+    sliders.blen.value = actualLen;
+    displays.blen.value = fmt(actualLen, 0);
+  }
+
+  // ── bore length label top center ─────
+  ctx.fillStyle = '#FFD700';
+  ctx.font = 'bold 22px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(fmt(actualLen, 0) + ' total bore length', W / 2, 26);
+
+  // ── end angle label ──────────────────
+  ctx.fillStyle = '#00FFD0';
+  ctx.font = 'bold 17px sans-serif';
+  ctx.textAlign = breakthrough ? 'right' : 'left';
+  const endAngleLbl = 'exit: ' + pN.heading.toFixed(1) + '°';
+  const eax = cx(pN.x) + (breakthrough ? -14 : 14);
+  const eay = cy(Math.max(0, pN.depth)) + 44;
+  ctx.fillText(endAngleLbl, eax, eay);
+
+  // ── 5° turn milestone marker ──────────
+  const startHeading = -v.launch;
+  const target5 = startHeading + 5;
+  const pt5 = pts.find(p => p.heading >= target5);
+  if (pt5) {
+    ctx.fillStyle = '#FF44AA';
+    ctx.beginPath(); ctx.arc(cx(pt5.x), cy(pt5.depth), 7, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#FF44AA';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('+5° turn', cx(pt5.x) + 10, cy(pt5.depth) - 6);
+    ctx.fillStyle = '#cc2288';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText(fmt(pt5.x) + ' out', cx(pt5.x) + 10, cy(pt5.depth) + 12);
+  }
+
+  // ── launch type indicator ─────────────
+  const launchType = startsUnder ? 'PIT LAUNCH' : 'PORPOISE LAUNCH';
+  const launchColor = startsUnder ? '#00BFFF' : '#44DD88';
+  ctx.font = 'bold 16px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillStyle = launchColor;
+  ctx.fillText('▶ ' + launchType, W - PAD.right - 6, 24);
+
+
+}
+
+Object.values(sliders).forEach(s => s.addEventListener('input', draw));
+window.addEventListener('resize', draw);
+draw();
+</script>
+</body>
+</html>
